@@ -1,0 +1,44 @@
+name: spotify-clone
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: spotify
+      POSTGRES_PASSWORD: spotify
+      POSTGRES_DB: spotify
+    ports: ['${POSTGRES_HOST_PORT:-5440}:5432']
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/postgres-init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U spotify']
+      interval: 3s
+      retries: 20
+
+  redis:
+    image: redis:8-alpine
+    ports: ['${REDIS_HOST_PORT:-6390}:6379']
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 3s
+      retries: 20
+
+  app:
+    build: ./app
+    env_file: ./app/.env.example
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://spotify:spotify@postgres:5432/spotify
+      REDIS_URL: redis://redis:6379
+    ports: ['${APP_HOST_PORT:-3000}:3000']
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://localhost:3000/api/health']
+      interval: 5s
+      retries: 20
+
+volumes:
+  pgdata:
