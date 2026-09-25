@@ -19,6 +19,9 @@ import { RequestLoggerMiddleware } from './common/request-logger.middleware';
 import { validateEnv } from './config/env.validation';
 import { HealthModule } from './health/health.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { AlbumsModule } from './albums/albums.module';
+import { ArtistsModule } from './artists/artists.module';
+import { TracksModule } from './tracks/tracks.module';
 import { UsersModule } from './users/users.module';
 
 @Module({
@@ -60,6 +63,9 @@ import { UsersModule } from './users/users.module';
     PrismaModule,
     AuthModule,
     UsersModule,
+    ArtistsModule,
+    AlbumsModule,
+    TracksModule,
     HealthModule,
   ],
   providers: [
