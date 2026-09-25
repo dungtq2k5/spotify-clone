@@ -1,0 +1,101 @@
+name: CI/CD
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: app
+
+jobs:
+  test:
+    name: Lint, build, unit + e2e
+    runs-on: ubuntu-latest
+    services:
+      # Ports match app/.env.test so the same config works locally and in CI.
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: spotify
+          POSTGRES_PASSWORD: spotify
+          POSTGRES_DB: spotify_test
+        ports: ['5440:5432']
+        options: >-
+          --health-cmd "pg_isready -U spotify" --health-interval 3s --health-retries 20
+      redis:
+        image: redis:8-alpine
+        ports: ['6390:6379']
+        options: >-
+          --health-cmd "redis-cli ping" --health-interval 3s --health-retries 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: app/package.json
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: app/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm build
+      - run: pnpm test:cov
+      - run: pnpm test:e2e
+
+  system:
+    name: System tests (docker compose)
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - run: docker compose up -d --build --wait
+        working-directory: .
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: app/package.json
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: app/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test:system
+      - if: failure()
+        run: docker compose logs app
+        working-directory: .
+
+  publish:
+    name: Publish image to GHCR
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [test, system]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v5
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=sha
+            type=raw,value=latest
+      - uses: docker/build-push-action@v6
+        with:
+          context: app
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
