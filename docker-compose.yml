@@ -29,6 +29,7 @@ services:
     env_file: ./app/.env.example
     environment:
       NODE_ENV: production
+      SEED_MOCK: ${SEED_MOCK:-true}
       DATABASE_URL: postgresql://spotify:spotify@postgres:5432/spotify
       REDIS_URL: redis://redis:6379
     ports: ['${APP_HOST_PORT:-3000}:3000']
