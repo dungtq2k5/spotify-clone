@@ -8,12 +8,12 @@ import {
 } from '@nestjs/common';
 import type { Cache } from 'cache-manager';
 import type { Request, Response } from 'express';
-import { Observable, of, tap } from 'rxjs';
+import { mergeMap, Observable, of, tap } from 'rxjs';
 
 /**
- * Caches GET responses in Redis keyed by URL (path + query) and marks them
- * with `X-Cache: HIT|MISS`. Only for user-agnostic endpoints.
- * Invalidation: catalog writes call `cache.clear()`.
+ * Read-through Redis cache for user-agnostic controllers.
+ * - GET: cached by URL (path + query), marked `X-Cache: HIT|MISS`, expires after CACHE_TTL_MS.
+ * - Any other method: after the handler succeeds, the whole cache namespace is cleared.
  */
 @Injectable()
 export class HttpCacheInterceptor implements NestInterceptor {
@@ -25,7 +25,16 @@ export class HttpCacheInterceptor implements NestInterceptor {
   ): Promise<Observable<unknown>> {
     const req = ctx.switchToHttp().getRequest<Request>();
     const res = ctx.switchToHttp().getResponse<Response>();
-    if (req.method !== 'GET') return next.handle();
+
+    if (req.method !== 'GET') {
+      // ponytail: coarse invalidation (clears every cached page); use tagged/versioned keys if write volume grows.
+      return next.handle().pipe(
+        mergeMap(async (body: unknown) => {
+          await this.cache.clear();
+          return body;
+        }),
+      );
+    }
 
     const key = `http:${req.originalUrl}`;
     const hit = await this.cache.get(key);
