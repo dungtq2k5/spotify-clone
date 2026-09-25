@@ -1,0 +1,127 @@
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+model User {
+  id            String         @id @default(uuid()) @db.Uuid
+  email         String         @unique
+  passwordHash  String
+  displayName   String
+  role          Role           @default(USER)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  refreshTokens RefreshToken[]
+  playlists     Playlist[]
+  likes         Like[]
+}
+
+/// Opaque refresh token `<id>.<secret>`; only sha256(secret) is stored. Rotated on every refresh.
+model RefreshToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  tokenHash String
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Artist {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  bio       String?
+  imageUrl  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  albums    Album[]
+  tracks    Track[]
+
+  @@index([name])
+}
+
+model Album {
+  id          String    @id @default(uuid()) @db.Uuid
+  title       String
+  releaseDate DateTime? @db.Date
+  coverUrl    String?
+  artistId    String    @db.Uuid
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  artist      Artist    @relation(fields: [artistId], references: [id], onDelete: Cascade)
+  tracks      Track[]
+
+  @@index([artistId])
+  @@index([title])
+}
+
+model Track {
+  id          String          @id @default(uuid()) @db.Uuid
+  title       String
+  durationSec Int
+  audioUrl    String
+  trackNumber Int?
+  playCount   Int             @default(0)
+  artistId    String          @db.Uuid
+  albumId     String?         @db.Uuid
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  artist      Artist          @relation(fields: [artistId], references: [id], onDelete: Cascade)
+  album       Album?          @relation(fields: [albumId], references: [id], onDelete: SetNull)
+  playlists   PlaylistTrack[]
+  likes       Like[]
+
+  @@index([artistId])
+  @@index([albumId])
+  @@index([title])
+  @@index([playCount(sort: Desc)])
+}
+
+model Playlist {
+  id          String          @id @default(uuid()) @db.Uuid
+  name        String
+  description String?
+  isPublic    Boolean         @default(true)
+  ownerId     String          @db.Uuid
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  owner       User            @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  tracks      PlaylistTrack[]
+
+  @@index([ownerId])
+}
+
+model PlaylistTrack {
+  playlistId String   @db.Uuid
+  trackId    String   @db.Uuid
+  position   Int
+  addedAt    DateTime @default(now())
+  playlist   Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  track      Track    @relation(fields: [trackId], references: [id], onDelete: Cascade)
+
+  @@id([playlistId, trackId])
+  @@index([playlistId, position])
+}
+
+model Like {
+  userId    String   @db.Uuid
+  trackId   String   @db.Uuid
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  track     Track    @relation(fields: [trackId], references: [id], onDelete: Cascade)
+
+  @@id([userId, trackId])
+  @@index([trackId])
+}
