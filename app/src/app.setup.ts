@@ -7,7 +7,12 @@ import helmet from 'helmet';
 export function setupApp(app: INestApplication) {
   const config = app.get(ConfigService);
   app.setGlobalPrefix('api');
-  app.use(helmet());
+  app.use(
+    helmet({
+      // Served over plain HTTP in dev/docker; upgrading would break Swagger UI assets.
+      contentSecurityPolicy: { directives: { upgradeInsecureRequests: null } },
+    }),
+  );
   app.enableCors({
     origin: config.get<string>('CORS_ORIGINS', '').split(',').filter(Boolean),
   });
