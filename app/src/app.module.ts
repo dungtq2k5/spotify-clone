@@ -38,7 +38,12 @@ import { UsersModule } from './users/users.module';
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
         ttl: config.getOrThrow<number>('CACHE_TTL_MS'),
-        stores: [createKeyv(config.getOrThrow<string>('REDIS_URL'))],
+        // namespace → cache.clear() only wipes cache keys, not throttler keys.
+        stores: [
+          createKeyv(config.getOrThrow<string>('REDIS_URL'), {
+            namespace: 'cache',
+          }),
+        ],
       }),
     }),
     ThrottlerModule.forRootAsync({
