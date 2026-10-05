@@ -9,3 +9,4 @@ Internal development progress notes and architectural reviews.
 - **2026-09-27**: Conducted search latency checks on mock datasets.
 - **2026-09-28**: Updated error response schema mappings in documentation.
 - **2026-10-03**: Verified local docker-compose healthchecks and network aliases.
+- **2026-10-05**: Detailed refresh token rotation lifecycle in developer docs.
