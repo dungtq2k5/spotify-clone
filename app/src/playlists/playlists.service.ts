@@ -125,6 +125,6 @@ export class PlaylistsService {
         ),
       );
     });
-    return this.findOne(playlistId);
+    return this.withTracks(playlistId);
   }
 }
