@@ -11,3 +11,4 @@ Internal development progress notes and architectural reviews.
 - **2026-10-03**: Verified local docker-compose healthchecks and network aliases.
 - **2026-10-05**: Detailed refresh token rotation lifecycle in developer docs.
 - **2026-10-18**: Tracked test cases for user library and favorites operations.
+- **2026-10-19**: Aligned structured logging conventions across services.
