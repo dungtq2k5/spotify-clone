@@ -13,3 +13,4 @@ Internal development progress notes and architectural reviews.
 - **2026-10-18**: Tracked test cases for user library and favorites operations.
 - **2026-10-19**: Aligned structured logging conventions across services.
 - **2026-10-24**: Reviewed query parameters and pagination defaults in spec.
+- **2026-10-27**: Audited foreign key relations and cascade behaviors in schema.
