@@ -15,3 +15,4 @@ Internal development progress notes and architectural reviews.
 - **2026-10-24**: Reviewed query parameters and pagination defaults in spec.
 - **2026-10-27**: Audited foreign key relations and cascade behaviors in schema.
 - **2026-10-30**: Documented audio bitrate recommendations and playback targets.
+- **2026-11-03**: Audited required environment variables across staging and test.
